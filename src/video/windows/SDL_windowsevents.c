@@ -504,7 +504,10 @@ static SDL_MOUSE_EVENT_SOURCE GetMouseMessageSource()
        Check bits 8-32 for the signature (which will indicate a Tablet PC Pen or Touch Device).
        Only check bit 7 when Vista and up(Cleared=Pen, Set=Touch(which we need to filter out)),
        when the signature is set. The Mouse ID will be zero for an actual mouse. */
-    if (IsTouchEvent(extrainfo)) {
+    // When the lower 8 bits of extrainfo isn't zero while the upper bits of extrainfo
+    // is zero, Windows is lying to us: it's actually a pen/touch event(missing 
+    // signature)!
+    if (IsTouchEvent(extrainfo) || ((extrainfo&0xFF) && ((extrainfo&~0xFF)==0))) {
         if (extrainfo & 0x80) {
             return SDL_MOUSE_EVENT_SOURCE_TOUCH;
         } else {
