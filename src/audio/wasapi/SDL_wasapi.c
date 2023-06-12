@@ -457,7 +457,7 @@ int WASAPI_PrepDevice(SDL_AudioDevice *_this, const SDL_bool updatestream)
     }
 #endif
 
-    if (this->iscapture && this->hidden->isplayback)
+    if (_this->iscapture && _this->hidden->isplayback)
     {
         streamflags |= AUDCLNT_STREAMFLAGS_LOOPBACK;
     }
