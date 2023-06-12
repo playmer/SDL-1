@@ -1452,7 +1452,7 @@ WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 WIN_ClientPointFromSDL(data->window, &w, &h);
                 params->rgrc[0].right = params->rgrc[0].left + w;
                 params->rgrc[0].bottom = params->rgrc[0].top + h;
-            } else if (SDL_GetHintBoolean("SDL_HINT_WINDOWS_ADJUST_BORDERLESS_MAXIMIZED_CLIENTRECT", SDL_FALSE)) {
+            } else if (SDL_GetHintBoolean(SDL_HINT_WINDOWS_ADJUST_BORDERLESS_MAXIMIZED_CLIENTRECT, SDL_FALSE)) {
                 /* If we're maximizing a borderless and resizable Window, we need to adjust the client area to fit
                    the monitor otherwise Windows will give us an oversized Window on Maximization. */
                 NCCALCSIZE_PARAMS *params = (NCCALCSIZE_PARAMS *)lParam;

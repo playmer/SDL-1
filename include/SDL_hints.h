@@ -1952,6 +1952,19 @@ extern "C" {
 #define SDL_HINT_WAVE_TRUNCATION   "SDL_WAVE_TRUNCATION"
 
 /**
+ * \brief Controls whether SDL will correct the Client Area of a Borderless Resizeable Window
+ *        on fullscreen to not be oversized.
+ *
+ * The variable can be set to the following values:
+ *   "0"       - SDL will not treat WM_NCCALCSIZE special in the case of a Borderless
+ *               resizable Window.
+ *   "1"       - SDL will handle WM_NCCALCSIZE events on Borderless, resizable Windows 
+ *               undergoing fullscreen resize events, to ensure their client area 
+ *               doesn't exceed the Monitors work area.
+ */
+#define SDL_HINT_WINDOWS_ADJUST_BORDERLESS_MAXIMIZED_CLIENTRECT "SDL_HINT_WINDOWS_ADJUST_BORDERLESS_MAXIMIZED_CLIENTRECT"
+
+/**
  * \brief Tell SDL not to name threads on Windows with the 0x406D1388 Exception.
  *        The 0x406D1388 Exception is a trick used to inform Visual Studio of a
  *        thread's name, but it tends to cause problems with other debuggers,
