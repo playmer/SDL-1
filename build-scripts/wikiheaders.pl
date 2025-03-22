@@ -2680,8 +2680,8 @@ __EOF__
             opendir(DH, $readmepath) or die("Can't opendir '$readmepath': $!\n");
             while (my $d = readdir(DH)) {
                 my $dent = $d;
-                if ($dent =~ /\AREADME\-(.*?\.md)\Z/) {  # we only bridge Markdown files here.
-                    my $wikifname = $1;
+                if ($dent =~ /\A(README|INTRO)\-(.*?\.md)\Z/) {  # we only bridge Markdown files here.
+                    my $wikifname = $2;
                     next if $wikifname eq 'FrontPage.md';
                     filecopy("$readmepath/$dent", "$wikireadmepath/$wikifname", "\n");
                 }
