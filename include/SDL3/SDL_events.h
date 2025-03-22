@@ -1397,6 +1397,8 @@ typedef bool (SDLCALL *SDL_EventFilter)(void *userdata, SDL_Event *event);
  * 
  * 
  * ```c
+ * #include "SDL3/SDL.h"
+ * 
  * bool SDLCALL event_hook(void *userdata, SDL_Event *event) {
  *     switch (event->type) {
  *         case SDL_EVENT_WINDOW_EXPOSED: {
@@ -1407,7 +1409,10 @@ typedef bool (SDLCALL *SDL_EventFilter)(void *userdata, SDL_Event *event);
  * }
  * 
  * // Somewhere in initializtion:
- * SDL_SetEventFilter(&event_hook, app_state_ptr);
+ * int main(int argc, char*[] argv) {
+ *   void* app_state_ptr = NULL; // Set to some relevant application state to use in your event_hook.
+ *   SDL_SetEventFilter(&event_hook, app_state_ptr);
+ * }
  * ```
  *
  * Note: Disabled events never make it to the event filter function; see
