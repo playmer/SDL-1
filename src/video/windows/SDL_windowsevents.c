@@ -1892,7 +1892,26 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             data->initial_size_rect.top = data->window->y;
             data->initial_size_rect.bottom = data->window->y + data->window->h;
 
-            SetTimer(hwnd, (UINT_PTR)SDL_IterateMainCallbacks, USER_TIMER_MINIMUM, NULL);
+            // We'll default to USER_TIMER_MINIMUM (10ms), but if the user supplies an
+            // alternate rate, we'll request it instead.
+            const char *callback_rate_hint = SDL_GetHint(SDL_HINT_MAIN_CALLBACK_RATE);
+            UINT callback_rate = USER_TIMER_MINIMUM;
+
+            if (callback_rate_hint)
+            {
+                // If they only want callbacks when we get events, then we don't need to set a timer
+                // and can wait to call Iterate until WM_PAINT comes in.
+                if ((SDL_strcmp(callback_rate_hint, "waitevent") == 0)) {
+                    break;
+                }
+
+                double requested_fps = SDL_atof(callback_rate_hint);
+                if (requested_fps > USER_TIMER_MINIMUM) {
+                    callback_rate = (UINT)((double) SDL_MS_PER_SECOND / requested_fps);
+                }
+            }
+
+            SetTimer(hwnd, (UINT_PTR)SDL_IterateMainCallbacks, callback_rate, NULL);
 
             // Reset the keyboard, as we won't get any key up events during the modal loop
             SDL_ResetKeyboard();
