@@ -84,7 +84,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
   SDL_CreateWindowAndRenderer("menu bar test", 640, 480, 0, &window, &renderer);
 
-  //CreateMenuBar();
+  CreateMenuBar();
 
   //return SDL_APP_SUCCESS;
   return SDL_APP_CONTINUE;
