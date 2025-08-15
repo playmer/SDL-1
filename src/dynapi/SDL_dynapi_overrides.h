@@ -1286,3 +1286,10 @@
 #define SDL_SetTexturePalette SDL_SetTexturePalette_REAL
 #define SDL_GetTexturePalette SDL_GetTexturePalette_REAL
 #define SDL_GetGPURendererDevice SDL_GetGPURendererDevice_REAL
+
+#define SDL_CreateMenuBar SDL_CreateMenuBar_REAL
+#define SDL_CreateMenuBarItem SDL_CreateMenuBarItem_REAL
+#define SDL_CreateMenuItem SDL_CreateMenuItem_REAL
+#define SDL_CheckMenuItem SDL_CheckMenuItem_REAL
+#define SDL_EnableMenuItem SDL_EnableMenuItem_REAL
+#define SDL_DestroyMenuBar SDL_DestroyMenuBar_REAL
