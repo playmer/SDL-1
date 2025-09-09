@@ -47,13 +47,6 @@ static void IME_Quit(SDL_VideoData *videodata);
 static void IME_SetTextInputArea(SDL_VideoData *videodata, HWND hwnd, const SDL_Rect *rect, int cursor);
 #endif // !SDL_DISABLE_WINDOWS_IME
 
-#ifndef MAPVK_VK_TO_VSC
-#define MAPVK_VK_TO_VSC 0
-#endif
-#ifndef MAPVK_VSC_TO_VK
-#define MAPVK_VSC_TO_VK 1
-#endif
-
 /* Building keymaps is expensive, so keep a reasonably-sized LRU cache to
  * enable fast switching between commonly used ones.
  */

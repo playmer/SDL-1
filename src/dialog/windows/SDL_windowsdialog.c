@@ -21,12 +21,13 @@
 #include "SDL_internal.h"
 #include "../SDL_dialog.h"
 #include "../SDL_dialog_utils.h"
+#include "../../core/windows/SDL_windows.h"
 
+#include <unknwn.h>
 #include <windows.h>
 #include <commdlg.h>
 #include <shlobj.h>
 #include <shobjidl.h>
-#include "../../core/windows/SDL_windows.h"
 #include "../../thread/SDL_systhread.h"
 
 #if WINVER < _WIN32_WINNT_VISTA
@@ -38,21 +39,21 @@ typedef struct _COMDLG_FILTERSPEC
 
 typedef enum FDE_OVERWRITE_RESPONSE
 {
-    FDEOR_DEFAULT
-    FDEOR_ACCEPT
+    FDEOR_DEFAULT,
+    FDEOR_ACCEPT,
     FDEOR_REFUSE
 } FDE_OVERWRITE_RESPONSE;
 
 typedef enum FDE_SHAREVIOLATION_RESPONSE
 {
-    FDESVR_DEFAULT
-    FDESVR_ACCEPT
+    FDESVR_DEFAULT,
+    FDESVR_ACCEPT,
     FDESVR_REFUSE
 } FDE_SHAREVIOLATION_RESPONSE;
 
 typedef enum FDAP
 {
-    FDAP_BOTTOM
+    FDAP_BOTTOM,
     FDAP_TOP
 } FDAP;
 
@@ -927,7 +928,9 @@ void windows_ShowFileDialog(void *ptr)
     dialog.lpfnHook = NULL;
     dialog.lpTemplateName = NULL;
     // Skipped many mac-exclusive and reserved members
+#if (_WIN32_WINNT >= 0x0500)
     dialog.FlagsEx = 0;
+#endif // (_WIN32_WINNT >= 0x0500)
 
     BOOL result = pGetAnyFileName(&dialog);
 

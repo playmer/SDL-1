@@ -20,6 +20,8 @@
 #ifndef HIDAPI_CFGMGR32_H
 #define HIDAPI_CFGMGR32_H
 
+#include "../../core/windows/SDL_windows.h"
+
 #ifdef HIDAPI_USE_DDK
 
 #include <cfgmgr32.h>
@@ -33,8 +35,30 @@
     but only what is used by HIDAPI */
 
 //#include <initguid.h>
+
+#if WINVER >= _WIN32_WINNT_VISTA
 #include <devpropdef.h>
+#else
+typedef ULONG DEVPROPTYPE, *PDEVPROPTYPE;
+#define DEVPROP_TYPEMOD_LIST 0x00002000
+#define DEVPROP_TYPE_STRING 0x00000012
+#define DEVPROP_TYPE_GUID 0x0000000D
+#define DEVPROP_TYPE_STRING_LIST (DEVPROP_TYPE_STRING|DEVPROP_TYPEMOD_LIST)
+#endif
 //#include <propkeydef.h>
+
+#ifndef DEVPROPKEY_DEFINED
+#define DEVPROPKEY_DEFINED
+
+typedef GUID  DEVPROPGUID, *PDEVPROPGUID;
+typedef ULONG DEVPROPID,   *PDEVPROPID;
+
+typedef struct _DEVPROPKEY {
+    DEVPROPGUID fmtid;
+    DEVPROPID   pid;
+} DEVPROPKEY, *PDEVPROPKEY;
+
+#endif // DEVPROPKEY_DEFINED
 
 #ifndef PROPERTYKEY_DEFINED
 #define PROPERTYKEY_DEFINED

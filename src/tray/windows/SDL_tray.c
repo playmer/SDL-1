@@ -27,9 +27,6 @@
 #include <windowsx.h>
 #include <shellapi.h>
 
-#ifndef NOTIFYICON_VERSION_4
-#define NOTIFYICON_VERSION_4 4
-#endif
 #ifndef NIF_SHOWTIP
 #define NIF_SHOWTIP 0x00000080
 #endif
@@ -238,7 +235,9 @@ SDL_Tray *SDL_CreateTray(SDL_Surface *icon, const char *tooltip)
     tray->nid.uID = (UINT) get_next_id();
     tray->nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP;
     tray->nid.uCallbackMessage = WM_TRAYICON;
+#ifdef NOTIFYICON_VERSION_4 // If we don't have NOTIFYICON_VERSION_4, we likely don't have this field either.
     tray->nid.uVersion = NOTIFYICON_VERSION_4;
+#endif
     wchar_t *tooltipw = WIN_UTF8ToStringW(tooltip);
     SDL_wcslcpy(tray->nid.szTip, tooltipw, sizeof(tray->nid.szTip) / sizeof(*tray->nid.szTip));
     SDL_free(tooltipw);
@@ -257,7 +256,9 @@ SDL_Tray *SDL_CreateTray(SDL_Surface *icon, const char *tooltip)
     }
 
     Shell_NotifyIconW(NIM_ADD, &tray->nid);
+#ifdef NIM_SETVERSION // If we don't have NIM_SETVERSION, we didn't have the uVersion field above, so we shouldn't tell windows to read it.
     Shell_NotifyIconW(NIM_SETVERSION, &tray->nid);
+#endif
 
     SetWindowLongPtr(tray->hwnd, GWLP_USERDATA, (LONG_PTR) tray);
 
