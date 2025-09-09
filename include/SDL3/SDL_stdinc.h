@@ -150,7 +150,6 @@ void *alloca(size_t);
 
 #elif defined(_MSC_VER) && (_MSC_VER < 1310) && !defined(__clang__) /* long long introduced in Visual Studio.NET 2003 */
 #  define SDL_NOLONGLONG 1
-# error "oh noooo"
 #endif
 
 
