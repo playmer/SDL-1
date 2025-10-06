@@ -1261,6 +1261,7 @@ SDL3_0.0.0 {
     SDL_GetTexturePalette;
     SDL_GetGPURendererDevice;
     SDL_CreateMenuBar;
+    SDL_GetMenuBarAppMenu;
     SDL_SetWindowMenuBar;
     SDL_CreateMenuItemAt;
     SDL_CreateMenuItem;

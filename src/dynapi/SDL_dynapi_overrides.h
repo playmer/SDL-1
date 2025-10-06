@@ -1288,6 +1288,7 @@
 #define SDL_GetGPURendererDevice SDL_GetGPURendererDevice_REAL
 
 #define SDL_CreateMenuBar SDL_CreateMenuBar_REAL
+#define SDL_GetMenuBarAppMenu SDL_GetMenuBarAppMenu_REAL
 #define SDL_GetWindowMenuBar SDL_GetWindowMenuBar_REAL
 #define SDL_SetWindowMenuBar SDL_SetWindowMenuBar_REAL
 #define SDL_CreateMenuItemAt SDL_CreateMenuItemAt_REAL
