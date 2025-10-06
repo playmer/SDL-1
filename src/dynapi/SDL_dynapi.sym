@@ -1262,6 +1262,7 @@ SDL3_0.0.0 {
     SDL_GetGPURendererDevice;
     SDL_CreateMenuBar;
     SDL_GetMenuBarAppMenu;
+    SDL_GetWindowMenuBar;
     SDL_SetWindowMenuBar;
     SDL_CreateMenuItemAt;
     SDL_CreateMenuItem;
@@ -1269,6 +1270,8 @@ SDL3_0.0.0 {
     SDL_SetMenuItemChecked;
     SDL_GetMenuItemEnabled;
     SDL_SetMenuItemEnabled;
+    SDL_GetMenuItemLabel;
+    SDL_SetMenuItemLabel;
     SDL_DestroyMenuItem;
     # extra symbols go here (don't modify this line)
   local: *;
