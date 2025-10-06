@@ -1265,7 +1265,6 @@ SDL3_0.0.0 {
     SDL_SetWindowMenuBar;
     SDL_CreateMenuItemAt;
     SDL_CreateMenuItem;
-    SDL_ChildItems;
     SDL_GetMenuItemChecked;
     SDL_SetMenuItemChecked;
     SDL_GetMenuItemEnabled;
