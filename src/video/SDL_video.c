@@ -4469,7 +4469,10 @@ void SDL_DestroyWindow(SDL_Window *window)
 
     SDL_SendWindowEvent(window, SDL_EVENT_WINDOW_DESTROYED, 0, 0);
 
-    SDL_DestroyMenuItem((SDL_MenuItem*)window->menu_bar);
+    if (window->menu_bar) {
+        SDL_DestroyMenuItem((SDL_MenuItem *)window->menu_bar);
+        window->menu_bar = NULL;
+    }
 
     SDL_DestroyWindowSurface(window);
 
@@ -6242,6 +6245,11 @@ SDL_MenuItem *SDL_CreateMenuItemAt(SDL_MenuItem *menu_as_item, size_t index, con
         return false;
     }
 
+    if (!label) {
+        SDL_SetError("Label cannot be null");
+        return NULL;
+    }
+
     SDL_Menu_CommonData *menu = (SDL_Menu_CommonData *)menu_as_item;
 
     if (menu->num_children < (Sint64)index) {
@@ -6368,12 +6376,29 @@ SDL_MenuItem *SDL_GetMenuChildItem(SDL_MenuItem *menu_as_item, size_t index)
 const char *SDL_GetMenuItemLabel(SDL_MenuItem *menu_item)
 {
     CHECK_MENUITEM_MAGIC(menu_item, NULL);
+
+    if (menu_item->common.menu_bar->app_menu == menu_item ||
+        menu_item->common.type == SDL_MENUITEM_MENUBAR) {
+        return "";
+    }
+
     return menu_item->common.label;
 }
 
 bool SDL_SetMenuItemLabel(SDL_MenuItem *menu_item, const char *label)
 {
     CHECK_MENUITEM_MAGIC(menu_item, false);
+
+    if (menu_item->common.menu_bar->app_menu == menu_item) {
+        SDL_SetError("Cannot set a label on an app menu.");
+        return false;
+    }
+
+    if (menu_item->common.type == SDL_MENUITEM_MENUBAR) {
+        SDL_SetError("Cannot set a label on an SDL_MENUITEM_MENUBAR.");
+        return false;
+    }
+
     if (_this->SetMenuItemLabel(menu_item, label)) {
         if (menu_item->common.label) {
             SDL_free((void*)menu_item->common.label);
@@ -6477,6 +6502,11 @@ bool SDL_DestroyMenuItem(SDL_MenuItem *menu_item)
                 next = current->common.next;
             }
         }
+    }
+
+    // App Menus cannot be destroyed by the user, only their children can, so we can exit out here.
+    if (menu_item == menu_item->common.menu_bar->app_menu) {
+        return true;
     }
 
     if (!_this->DestroyMenuItem(menu_item)) {
