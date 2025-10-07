@@ -52,7 +52,7 @@ static SDL_EventType_MenuExt EVENT_START = (SDL_EventType_MenuExt)0;
 void PrintMenuItems(SDL_Renderer* renderer, SDL_MenuItem *menu_item, int indent, int *total_index)
 {
     SDL_MenuItem *app_menu = NULL;
-    size_t item_count = 0;
+    Sint64 item_count = 0;
     Sint64 i = 0;
 
     if (!menu_item) {
