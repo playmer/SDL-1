@@ -79,7 +79,7 @@ void PrintMenuItems(SDL_Renderer* renderer, SDL_MenuItem *menu_item, int indent,
             item_count = SDL_GetMenuChildItems(app_menu);
             
             for (i = 0; i < item_count; ++i) {
-                PrintMenuItems(renderer, SDL_GetMenuChildItem(app_menu, i), indent + 2, total_index);
+                PrintMenuItems(renderer, SDL_GetMenuChildItem(app_menu, (size_t)i), indent + 2, total_index);
             }
         }
     }
@@ -87,7 +87,7 @@ void PrintMenuItems(SDL_Renderer* renderer, SDL_MenuItem *menu_item, int indent,
     item_count = SDL_GetMenuChildItems(menu_item);
 
     for (i = 0; i < item_count; ++i) {
-        PrintMenuItems(renderer, SDL_GetMenuChildItem(menu_item, i), indent + 1, total_index);
+        PrintMenuItems(renderer, SDL_GetMenuChildItem(menu_item, (size_t)i), indent + 1, total_index);
     }
 }
 
