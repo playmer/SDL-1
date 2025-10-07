@@ -51,6 +51,10 @@ static SDL_EventType_MenuExt EVENT_START = (SDL_EventType_MenuExt)0;
 
 void PrintMenuItems(SDL_Renderer* renderer, SDL_MenuItem *menu_item, int indent, int *total_index)
 {
+    SDL_MenuItem *app_menu = NULL;
+    size_t item_count = 0;
+    size_t i = 0;
+
     if (!menu_item) {
         return;
     }
@@ -66,24 +70,23 @@ void PrintMenuItems(SDL_Renderer* renderer, SDL_MenuItem *menu_item, int indent,
     
     
     if (SDL_GetMenuItemType(menu_item) == SDL_MENUITEM_MENUBAR) {
-        SDL_MenuItem *app_menu = SDL_GetMenuBarAppMenu(menu_item);
+        app_menu = SDL_GetMenuBarAppMenu(menu_item);
         
         if (app_menu) {
             SDL_RenderDebugText(renderer, (float)(8 * (indent + 1) * 2), (float)(*total_index * 8), " -> AppMenu");
             ++(*total_index);
             
-            size_t item_count = SDL_GetMenuChildItems(app_menu);
+            item_count = SDL_GetMenuChildItems(app_menu);
             
-            for (size_t i = 0; i < item_count; ++i) {
+            for (i = 0; i < item_count; ++i) {
                 PrintMenuItems(renderer, SDL_GetMenuChildItem(app_menu, i), indent + 2, total_index);
             }
         }
     }
-    
 
-    size_t item_count = SDL_GetMenuChildItems(menu_item);
+    item_count = SDL_GetMenuChildItems(menu_item);
 
-    for (size_t i = 0; i < item_count; ++i) {
+    for (i = 0; i < item_count; ++i) {
         PrintMenuItems(renderer, SDL_GetMenuChildItem(menu_item, i), indent + 1, total_index);
     }
 }
