@@ -53,7 +53,7 @@ void PrintMenuItems(SDL_Renderer* renderer, SDL_MenuItem *menu_item, int indent,
 {
     SDL_MenuItem *app_menu = NULL;
     size_t item_count = 0;
-    size_t i = 0;
+    Sint64 i = 0;
 
     if (!menu_item) {
         return;
