@@ -21,6 +21,7 @@
 #include "SDL_internal.h"
 
 // Window event handling code for SDL
+#include "../main/SDL_main_callbacks.h"
 
 #include "SDL_events_c.h"
 #include "SDL_eventwatch_c.h"
@@ -244,6 +245,9 @@ bool SDL_SendWindowEvent(SDL_Window *window, SDL_EventType windowevent, int data
     }
 
     switch (windowevent) {
+    case SDL_EVENT_WINDOW_EXPOSED:
+        SDL_DispatchMainCallbackEvent(&event);
+        break;
     case SDL_EVENT_WINDOW_SHOWN:
         SDL_OnWindowShown(window);
         break;

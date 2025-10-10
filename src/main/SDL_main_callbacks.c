@@ -44,7 +44,7 @@ static bool ShouldDispatchImmediately(SDL_Event *event)
     }
 }
 
-static void SDL_DispatchMainCallbackEvent(SDL_Event *event)
+void SDL_DispatchMainCallbackEvent(SDL_Event *event)
 {
     if (SDL_GetAtomicInt(&apprc) == SDL_APP_CONTINUE) { // if already quitting, don't send the event to the app.
         SDL_CompareAndSwapAtomicInt(&apprc, SDL_APP_CONTINUE, SDL_main_event_callback(SDL_main_appstate, event));
