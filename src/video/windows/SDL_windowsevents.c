@@ -2016,9 +2016,9 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             returnCode = TRUE;
         }
     } break;
-
         // We were occluded, refresh our display
-    case WM_PAINT:
+    case WM_NCPAINT:
+    //case WM_PAINT:
     {
         RECT rect;
         if (GetUpdateRect(hwnd, &rect, FALSE)) {
@@ -2027,16 +2027,20 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             /* Composited windows will continue to receive WM_PAINT messages for update
                regions until the window is actually painted through Begin/EndPaint */
             if (style & WS_EX_COMPOSITED) {
-                PAINTSTRUCT ps;
-                BeginPaint(hwnd, &ps);
-                EndPaint(hwnd, &ps);
             }
 
-            ValidateRect(hwnd, NULL);
+            //ValidateRect(hwnd, NULL);
+            //PAINTSTRUCT ps;
+            //BeginPaint(hwnd, &ps);
             SDL_SendWindowEvent(data->window, SDL_EVENT_WINDOW_EXPOSED, 0, 0);
+            //EndPaint(hwnd, &ps);
+
+            if (data->videodata->DwmFlush) {
+                data->videodata->DwmFlush();
+            }
         }
     }
-        returnCode = 0;
+        //returnCode = 1;
         break;
 
         // We'll do our own drawing, prevent flicker
@@ -2732,8 +2736,9 @@ bool SDL_RegisterApp(const char *name, Uint32 style, void *hInst)
     SDL_zero(wcex);
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.lpszClassName = SDL_Appname;
-    wcex.style = SDL_Appstyle;
+    wcex.style = SDL_Appstyle | CS_VREDRAW | CS_HREDRAW;
     wcex.lpfnWndProc = DefWindowProc;
+    wcex.hbrBackground = NULL;
     wcex.hInstance = SDL_Instance;
 
 #if !defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)
