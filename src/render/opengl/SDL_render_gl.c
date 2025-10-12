@@ -119,6 +119,8 @@ typedef struct
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT;
     PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatusEXT;
 
+    GLuint window_framebuffer;
+
     // Shader support
     GL_ShaderContext *shaders;
 
@@ -946,7 +948,7 @@ static bool GL_SetRenderTarget(SDL_Renderer *renderer, SDL_Texture *texture)
     data->drawstate.viewport_dirty = true;
 
     if (!texture) {
-        data->glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        data->glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, data->window_framebuffer);
         return true;
     }
 
@@ -1836,6 +1838,10 @@ static bool GL_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL_Pr
     if (!GL_LoadFunctions(data)) {
         goto error;
     }
+
+    //if (SDL_GL_ExtensionSupported("WGL_NV_DX_interop")) {
+    //    SDL_GetVideoDevice()->GetDisplayModes
+    //}
 
 #ifdef SDL_PLATFORM_MACOS
     // Enable multi-threaded rendering
