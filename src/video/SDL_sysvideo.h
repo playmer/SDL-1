@@ -23,6 +23,7 @@
 #ifndef SDL_sysvideo_h_
 #define SDL_sysvideo_h_
 
+#include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_vulkan.h>
 
 #include "SDL_surface_c.h"
@@ -330,6 +331,7 @@ struct SDL_VideoDevice
     bool (*GL_SwapWindow)(SDL_VideoDevice *_this, SDL_Window *window);
     bool (*GL_DestroyContext)(SDL_VideoDevice *_this, SDL_GLContext context);
     void (*GL_DefaultProfileConfig)(SDL_VideoDevice *_this, int *mask, int *major, int *minor);
+    GLuint (*GL_GetBestFramebuffer)(SDL_VideoDevice *_this, bool es_window);
 
     /* * * */
     /*

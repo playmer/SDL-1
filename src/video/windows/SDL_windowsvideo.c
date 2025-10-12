@@ -288,6 +288,7 @@ static SDL_VideoDevice *WIN_CreateDevice(void)
         data->DwmFlush = (HRESULT (WINAPI *)(void))SDL_LoadFunction(data->dwmapiDLL, "DwmFlush");
         data->DwmEnableBlurBehindWindow = (HRESULT (WINAPI *)(HWND hwnd, const DWM_BLURBEHIND *pBlurBehind))SDL_LoadFunction(data->dwmapiDLL, "DwmEnableBlurBehindWindow");
         data->DwmSetWindowAttribute = (HRESULT (WINAPI *)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute))SDL_LoadFunction(data->dwmapiDLL, "DwmSetWindowAttribute");
+        data->DwmGetCompositionTimingInfo = (HRESULT (WINAPI *)(HWND hwnd, DWM_TIMING_INFO *pTimingInfo))SDL_LoadFunction(data->dwmapiDLL, "DwmGetCompositionTimingInfo");
         /* *INDENT-ON* */ // clang-format on
     } else {
         SDL_ClearError();

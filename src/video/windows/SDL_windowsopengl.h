@@ -25,6 +25,8 @@
 
 #ifdef SDL_VIDEO_OPENGL_WGL
 
+#include "SDL3/SDL_opengl.h"
+
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
 typedef struct tagPIXELFORMATDESCRIPTOR
 {
@@ -66,6 +68,7 @@ struct SDL_GLDriverData
     bool HAS_WGL_ARB_create_context_no_error;
     bool HAS_WGL_ARB_pixel_format_float;
     bool HAS_WGL_EXT_create_context_es2_profile;
+    bool HAS_WGL_NV_DX_interop;
 
     /* Max version of OpenGL ES context that can be created if the
        implementation supports WGL_EXT_create_context_es2_profile.
@@ -87,6 +90,18 @@ struct SDL_GLDriverData
     BOOL (WINAPI *wglGetPixelFormatAttribivARB)(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues);
     BOOL (WINAPI *wglSwapIntervalEXT)(int interval);
     int (WINAPI *wglGetSwapIntervalEXT)(void);
+
+    
+    HANDLE (WINAPI* wglDXOpenDeviceNV)(void *dxDevice);
+    BOOL (WINAPI* wglDXCloseDeviceNV)(HANDLE hDevice);
+    HANDLE (WINAPI* wglDXRegisterObjectNV)(HANDLE hDevice, void *dxObject, GLuint name, GLenum type, GLenum access);
+    BOOL (WINAPI* wglDXUnregisterObjectNV)(HANDLE hDevice, HANDLE hObject);
+    BOOL (WINAPI* wglDXObjectAccessNV)(HANDLE hObject, GLenum access);
+    BOOL (WINAPI* wglDXLockObjectsNV)(HANDLE hDevice, GLint count, HANDLE *hObjects);
+    BOOL (WINAPI* wglDXUnlockObjectsNV)(HANDLE hDevice, GLint count, HANDLE *hObjects);
+    void (GLAPIENTRY* glGetIntegerv)( GLenum pname, GLint *params );
+
+
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     BOOL (WINAPI *wglSwapBuffers)(HDC hdc);
     int (WINAPI *wglDescribePixelFormat)(HDC hdc,

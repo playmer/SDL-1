@@ -23,6 +23,7 @@
 #ifdef SDL_VIDEO_DRIVER_WINDOWS
 
 #include "SDL_windowsvideo.h"
+
 #include "../../events/SDL_events_c.h"
 #include "../../events/SDL_touch_c.h"
 #include "../../events/scancodes_windows.h"
@@ -1145,6 +1146,63 @@ static bool DispatchModalLoopMessageHook(HWND *hwnd, UINT *msg, WPARAM *wParam, 
     }
     return false;
 }
+//#include <dwmapi.h>
+
+
+static void DelayUntilRefresh(SDL_WindowData* data)
+{
+    if (data->videodata->DwmFlush) {
+        data->videodata->DwmFlush();
+    }
+    //if (!data->videodata->DwmGetCompositionTimingInfo) {
+    //    return;
+    //}
+    //
+    //LARGE_INTEGER freq, now0, now1, now2;
+    //QueryPerformanceFrequency(&freq); // hz
+    //
+    //QueryPerformanceCounter(&now0);
+    //
+    //// ask DWM where the vertical blank falls
+    //DWM_TIMING_INFO dti;
+    //memset(&dti, 0, sizeof(dti));
+    //dti.cbSize = sizeof(DWM_TIMING_INFO);
+    //
+    //// 8.1 on requires the HWND to be NULL
+    //HRESULT res = data->videodata->DwmGetCompositionTimingInfo(NULL, &dti);
+    //
+    //QueryPerformanceCounter(&now1);
+    //
+    //// - DWM told us about SOME vertical blank
+    ////   - past or future, possibly many frames away
+    //// - convert that into the NEXT vertical blank
+    //
+    //__int64 period = (__int64)dti.qpcRefreshPeriod;
+    //
+    //__int64 dt = (__int64)dti.qpcVBlank - (__int64)now1.QuadPart;
+    //
+    //__int64 w, m;
+    //
+    //if (dt >= 0) {
+    //    w = dt / period;
+    //} else // dt < 0
+    //{
+    //    // reach back to previous period
+    //    // - so m represents consistent position within phase
+    //    w = -1 + dt / period;
+    //}
+    //
+    //// uncomment this to see worst-case behavior
+    //// dt += (sint_64_t)(0.5 * period);
+    //
+    //m = dt - (period * w);
+    //
+    ////assert(m >= 0);
+    ////assert(m < period);
+    //
+    //double m_us = (double)m / (double)freq.QuadPart;
+    //SDL_DelayPrecise(1000 * m_us);
+}
 
 LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -2227,7 +2285,13 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 params->rgrc[0].right = params->rgrc[0].left + w;
                 params->rgrc[0].bottom = params->rgrc[0].top + h;
             }
+            if (data->in_modal_loop) {
+                DelayUntilRefresh(data);
+            }
             return 0;
+        }
+        if (data->in_modal_loop) {
+            DelayUntilRefresh(data);
         }
     } break;
 

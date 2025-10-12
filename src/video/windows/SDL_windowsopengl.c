@@ -488,6 +488,45 @@ void WIN_GL_InitExtensions(SDL_VideoDevice *_this)
         _this->gl_data->wglGetSwapIntervalEXT = NULL;
     }
 
+    _this->gl_data->HAS_WGL_NV_DX_interop = false;
+    if (HasExtension("WGL_NV_DX_interop", extensions)) {
+        _this->gl_data->wglDXOpenDeviceNV =
+            (HANDLE(WINAPI *)(void *dxDevice))
+            WIN_GL_GetProcAddress(_this, "wglDXOpenDeviceNV");
+        _this->gl_data->wglDXCloseDeviceNV =
+            (BOOL(WINAPI *)(HANDLE hDevice))
+            WIN_GL_GetProcAddress(_this, "wglDXCloseDeviceNV");
+        _this->gl_data->wglDXRegisterObjectNV =
+            (HANDLE(WINAPI *)(HANDLE hDevice, void *dxObject, GLuint name, GLenum type, GLenum access))
+            WIN_GL_GetProcAddress(_this, "wglDXRegisterObjectNV");
+        _this->gl_data->wglDXUnregisterObjectNV =
+            (BOOL(WINAPI *)(HANDLE hDevice, HANDLE hObject))
+            WIN_GL_GetProcAddress(_this, "wglDXUnregisterObjectNV");
+        _this->gl_data->wglDXObjectAccessNV =
+            (BOOL(WINAPI *)(HANDLE hObject, GLenum access))
+            WIN_GL_GetProcAddress(_this, "wglDXObjectAccessNV");
+        _this->gl_data->wglDXLockObjectsNV =
+            (BOOL(WINAPI *)(HANDLE hDevice, GLint count, HANDLE * hObjects))
+            WIN_GL_GetProcAddress(_this, "wglDXLockObjectsNV");
+        _this->gl_data->wglDXUnlockObjectsNV =
+            (BOOL(WINAPI *)(HANDLE hDevice, GLint count, HANDLE * hObjects))
+            WIN_GL_GetProcAddress(_this, "wglDXUnlockObjectsNV");
+        _this->gl_data->glGetIntegerv =
+            (void(GLAPIENTRY *)(GLenum pname, GLint * params))
+            WIN_GL_GetProcAddress(_this, "glGetIntegerv");
+
+        if (_this->gl_data->wglDXOpenDeviceNV &&
+            _this->gl_data->wglDXCloseDeviceNV &&
+            _this->gl_data->wglDXRegisterObjectNV &&
+            _this->gl_data->wglDXUnregisterObjectNV &&
+            _this->gl_data->wglDXObjectAccessNV &&
+            _this->gl_data->wglDXLockObjectsNV &&
+            _this->gl_data->wglDXUnlockObjectsNV &&
+            _this->gl_data->glGetIntegerv) {
+            _this->gl_data->HAS_WGL_NV_DX_interop = true;
+        }
+    }
+
     // Check for WGL_EXT_create_context_es2_profile
     // see if we can get at OpenGL ES profiles even if EGL isn't available.
     _this->gl_data->HAS_WGL_EXT_create_context_es2_profile = HasExtension("WGL_EXT_create_context_es2_profile", extensions);
@@ -913,6 +952,22 @@ bool WIN_GL_DestroyContext(SDL_VideoDevice *_this, SDL_GLContext context)
     _this->gl_data->wglDeleteContext((HGLRC)context);
     return true;
 }
+
+GLuint WIN_GL_GetBestFramebuffer(SDL_VideoDevice *_this, bool es_window)
+{
+    if (!_this->gl_data->HAS_WGL_NV_DX_interop) {
+        if (es_window) {
+            GLint window_framebuffer = 0;
+            _this->gl_data->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &window_framebuffer);
+            return (GLuint)window_framebuffer;
+        } else {
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
 
 #endif // SDL_VIDEO_OPENGL_WGL
 
