@@ -59,6 +59,9 @@ typedef struct tagPIXELFORMATDESCRIPTOR
 } PIXELFORMATDESCRIPTOR, *PPIXELFORMATDESCRIPTOR, *LPPIXELFORMATDESCRIPTOR;
 #endif
 
+typedef struct ID3D11Device ID3D11Device;
+typedef struct ID3D11DeviceContext ID3D11DeviceContext;
+
 struct SDL_GLDriverData
 {
     bool HAS_WGL_ARB_pixel_format;
@@ -100,6 +103,9 @@ struct SDL_GLDriverData
     BOOL (WINAPI* wglDXLockObjectsNV)(HANDLE hDevice, GLint count, HANDLE *hObjects);
     BOOL (WINAPI* wglDXUnlockObjectsNV)(HANDLE hDevice, GLint count, HANDLE *hObjects);
     void (GLAPIENTRY* glGetIntegerv)( GLenum pname, GLint *params );
+
+    ID3D11Device *d3dDevice;
+    ID3D11Device *d3dContext;
 
 
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)

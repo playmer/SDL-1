@@ -30,6 +30,14 @@
 #ifdef SDL_VIDEO_OPENGL_WGL
 #include <SDL3/SDL_opengl.h>
 
+#include <d3d11_1.h>
+#ifdef HAVE_DXGI1_5_H
+#include <dxgi1_5.h>
+#else
+#include <dxgi1_4.h>
+#endif
+#include <dxgidebug.h>
+
 #define DEFAULT_OPENGL "OPENGL32.DLL"
 
 #ifndef WGL_ARB_create_context
@@ -953,6 +961,37 @@ bool WIN_GL_DestroyContext(SDL_VideoDevice *_this, SDL_GLContext context)
     return true;
 }
 
+
+static void CreateD3D11Device(SDL_VideoDevice *_this)
+{
+    /* This flag adds support for surfaces with a different color channel ordering
+     * than the API default. It is required for compatibility with Direct2D.
+     */
+    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+    if (SDL_GetHintBoolean(SDL_HINT_RENDER_DIRECT3D11_DEBUG, false)) {
+        creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+    }
+
+    // Create a single-threaded device unless the app requests otherwise.
+    if (!SDL_GetHintBoolean(SDL_HINT_RENDER_DIRECT3D_THREADSAFE, false)) {
+        creationFlags |= D3D11_CREATE_DEVICE_SINGLETHREADED;
+    }
+    
+    D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_0 };
+    HRESULT hr = D3D11CreateDevice(
+        NULL,
+        D3D_DRIVER_TYPE_HARDWARE,
+        NULL,
+        creationFlags,
+        levels,
+        SDL_arraysize(levels),
+        D3D11_SDK_VERSION,
+        &_this->gl_data->d3dDevice,
+        NULL,
+        &_this->gl_data->d3dContext);
+}
+
 GLuint WIN_GL_GetBestFramebuffer(SDL_VideoDevice *_this, bool es_window)
 {
     if (!_this->gl_data->HAS_WGL_NV_DX_interop) {
@@ -964,6 +1003,12 @@ GLuint WIN_GL_GetBestFramebuffer(SDL_VideoDevice *_this, bool es_window)
             return 0;
         }
     }
+
+    if (!_this->gl_data->d3dDevice) {
+        CreateD3D11Device(_this);
+    }
+
+
 
     return 0;
 }
