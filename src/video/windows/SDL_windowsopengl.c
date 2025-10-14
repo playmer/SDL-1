@@ -964,6 +964,16 @@ bool WIN_GL_DestroyContext(SDL_VideoDevice *_this, SDL_GLContext context)
 
 static void CreateD3D11Device(SDL_VideoDevice *_this)
 {
+    _this->gl_data->hD3D11Mod = SDL_LoadObject("d3d11.dll");
+    if (!_this->gl_data->hD3D11Mod) {
+        return;
+    }
+
+    _this->gl_data->pD3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)SDL_LoadFunction(_this->gl_data->hD3D11Mod, "D3D11CreateDevice");
+    if (!_this->gl_data->pD3D11CreateDevice) {
+        return;
+    }
+
     /* This flag adds support for surfaces with a different color channel ordering
      * than the API default. It is required for compatibility with Direct2D.
      */
@@ -979,7 +989,7 @@ static void CreateD3D11Device(SDL_VideoDevice *_this)
     }
     
     D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_0 };
-    HRESULT hr = D3D11CreateDevice(
+    HRESULT hr = _this->gl_data->pD3D11CreateDevice(
         NULL,
         D3D_DRIVER_TYPE_HARDWARE,
         NULL,
@@ -990,6 +1000,7 @@ static void CreateD3D11Device(SDL_VideoDevice *_this)
         &_this->gl_data->d3dDevice,
         NULL,
         &_this->gl_data->d3dContext);
+
 }
 
 GLuint WIN_GL_GetBestFramebuffer(SDL_VideoDevice *_this, bool es_window)

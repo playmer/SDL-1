@@ -1848,9 +1848,11 @@ static bool GL_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL_Pr
         goto error;
     }
 
-    //if (SDL_GL_ExtensionSupported("WGL_NV_DX_interop")) {
-    //    SDL_GetVideoDevice()->GetDisplayModes
-    //}
+    SDL_VideoDevice *device = SDL_GetVideoDevice();
+
+    if (device->GL_GetBestFramebuffer) {
+        device->GL_GetBestFramebuffer(device, false);
+    }
 
 #ifdef SDL_PLATFORM_MACOS
     // Enable multi-threaded rendering

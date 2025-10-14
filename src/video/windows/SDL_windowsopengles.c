@@ -80,6 +80,7 @@ SDL_GLContext WIN_GLES_CreateContext(SDL_VideoDevice *_this, SDL_Window *window)
         _this->GL_SwapWindow = WIN_GL_SwapWindow;
         _this->GL_DestroyContext = WIN_GL_DestroyContext;
         _this->GL_GetEGLSurface = NULL;
+        _this->GL_GetBestFramebuffer = WIN_GL_GetBestFramebuffer;
 
         if (!WIN_GL_LoadLibrary(_this, NULL)) {
             return NULL;
