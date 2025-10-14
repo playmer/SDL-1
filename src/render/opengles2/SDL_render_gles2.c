@@ -2286,6 +2286,7 @@ static bool GLES2_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL
     GLES2_RenderData *data = NULL;
     SDL_WindowFlags window_flags = 0; // -Wconditional-uninitialized
     GLint window_framebuffer;
+    SDL_VideoDevice *device = SDL_GetVideoDevice();
     GLint value;
     int profile_mask = 0, major = 0, minor = 0;
     bool changed_window = false;
@@ -2394,8 +2395,13 @@ static bool GLES2_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL
 #endif
 
     data->framebuffers = NULL;
-    data->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &window_framebuffer);
-    data->window_framebuffer = (GLuint)window_framebuffer;
+
+    if (device->GL_GetBestFramebuffer) {
+        data->window_framebuffer = device->GL_GetBestFramebuffer(device, false);
+    } else {
+        data->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &window_framebuffer);
+        data->window_framebuffer = (GLuint)window_framebuffer;
+    }
 
     SDL_AddSupportedTextureFormat(renderer, SDL_PIXELFORMAT_BGRA32);
     SDL_AddSupportedTextureFormat(renderer, SDL_PIXELFORMAT_RGBA32);

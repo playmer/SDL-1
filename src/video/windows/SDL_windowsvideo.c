@@ -373,6 +373,7 @@ static SDL_VideoDevice *WIN_CreateDevice(void)
     device->GL_SwapWindow = WIN_GL_SwapWindow;
     device->GL_DestroyContext = WIN_GL_DestroyContext;
     device->GL_GetEGLSurface = NULL;
+    device->GL_GetBestFramebuffer = WIN_GL_GetBestFramebuffer;
 #endif
 #ifdef SDL_VIDEO_OPENGL_EGL
 #ifdef SDL_VIDEO_OPENGL_WGL

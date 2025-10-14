@@ -27,6 +27,14 @@
 
 #include "SDL3/SDL_opengl.h"
 
+#include <d3d11_1.h>
+#ifdef HAVE_DXGI1_5_H
+#include <dxgi1_5.h>
+#else
+#include <dxgi1_4.h>
+#endif
+#include <dxgidebug.h>
+
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
 typedef struct tagPIXELFORMATDESCRIPTOR
 {
@@ -104,8 +112,10 @@ struct SDL_GLDriverData
     BOOL (WINAPI* wglDXUnlockObjectsNV)(HANDLE hDevice, GLint count, HANDLE *hObjects);
     void (GLAPIENTRY* glGetIntegerv)( GLenum pname, GLint *params );
 
+    SDL_SharedObject *hD3D11Mod;
+    PFN_D3D11_CREATE_DEVICE pD3D11CreateDevice;
     ID3D11Device *d3dDevice;
-    ID3D11Device *d3dContext;
+    ID3D11DeviceContext *d3dContext;
 
 
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
@@ -138,6 +148,7 @@ extern bool WIN_GL_GetSwapInterval(SDL_VideoDevice *_this, int *interval);
 extern bool WIN_GL_SwapWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern bool WIN_GL_DestroyContext(SDL_VideoDevice *_this, SDL_GLContext context);
 extern void WIN_GL_InitExtensions(SDL_VideoDevice *_this);
+extern GLuint WIN_GL_GetBestFramebuffer(SDL_VideoDevice *_this, bool es_window);
 
 #ifndef WGL_ARB_pixel_format
 #define WGL_NUMBER_PIXEL_FORMATS_ARB    0x2000
