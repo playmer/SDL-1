@@ -64,6 +64,7 @@ endif()
 
 find_package(PkgConfig)
 
+set(SDL3_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
 list(APPEND CMAKE_MODULE_PATH "${SDL3_SOURCE_DIR}/cmake")
 include("${SDL3_SOURCE_DIR}/cmake/macros.cmake")
 include("${SDL3_SOURCE_DIR}/cmake/sdlchecks.cmake")
@@ -536,12 +537,8 @@ sdl_include_directories(
     "${SDL3_BINARY_DIR}/include-revision"
     "${SDL3_SOURCE_DIR}/include"
 )
-# Note: The clang toolset for Visual Studio does not support the '-idirafter' option.
-if(USE_GCC OR USE_INTELCC OR (USE_CLANG AND NOT MSVC_CLANG))
-  sdl_compile_options(NO_EXPORT PRIVATE "$<BUILD_INTERFACE:-idirafter${SDL3_SOURCE_DIR}/src/video/khronos>")
-else()
-  sdl_include_directories(NO_EXPORT SYSTEM PRIVATE "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src/video/khronos>")
-endif()
+
+sdl_include_directories(NO_EXPORT SYSTEM PRIVATE "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src/video/khronos>")
 
 if(MSVC AND TARGET SDL3-shared AND NOT SDL_LIBC)
   if(SDL_CPU_X64)
@@ -3980,6 +3977,7 @@ if(SDL_SHARED)
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>/build_config"
       "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src>"
+      ${CMAKE_CURRENT_LIST_DIR}
   )
   target_link_libraries(SDL3-shared PUBLIC $<TARGET_NAME:SDL3::Headers>)
   if(MINGW OR CYGWIN)
@@ -4007,6 +4005,7 @@ if(SDL_STATIC)
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>/build_config"
       "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src>"
+      ${CMAKE_CURRENT_LIST_DIR}
   )
   target_link_libraries(SDL3-static PUBLIC $<TARGET_NAME:SDL3::Headers>)
   # Use `Compatible Interface Properties` to:
