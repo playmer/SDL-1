@@ -535,9 +535,10 @@ sdl_include_directories(
     "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/build_config"
     "${SDL3_BINARY_DIR}/include-revision"
     "${SDL3_SOURCE_DIR}/include"
+    "${SDL3_SOURCE_DIR}"
 )
-# Note: The clang toolset for Visual Studio does not support the '-idirafter' option.
-if(USE_GCC OR USE_INTELCC OR (USE_CLANG AND NOT MSVC_CLANG))
+
+if (VITA)
   sdl_compile_options(NO_EXPORT PRIVATE "$<BUILD_INTERFACE:-idirafter${SDL3_SOURCE_DIR}/src/video/khronos>")
 else()
   sdl_include_directories(NO_EXPORT SYSTEM PRIVATE "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src/video/khronos>")
