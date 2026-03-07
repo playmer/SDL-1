@@ -193,6 +193,8 @@ bool Wayland_GLES_MakeCurrent(SDL_VideoDevice *_this, SDL_Window *window, SDL_GL
     if (window && context) {
         result = SDL_EGL_MakeCurrent(_this, window->internal->egl_surface, context);
     } else {
+        result = SDL_EGL_MakeCurrent(_this, EGL_NO_SURFACE, context);
+    } else {
         result = SDL_EGL_MakeCurrent(_this, NULL, NULL);
     }
 

@@ -30,13 +30,9 @@
 #ifdef SDL_VIDEO_OPENGL_WGL
 #include <SDL3/SDL_opengl.h>
 
-#include <d3d11_1.h>
-#ifdef HAVE_DXGI1_5_H
-#include <dxgi1_5.h>
-#else
-#include <dxgi1_4.h>
-#endif
-#include <dxgidebug.h>
+#include "../directx/SDL_d3d12.h"
+
+#include "../../gpu/d3d12/D3D12_Device.h"
 
 #define DEFAULT_OPENGL "OPENGL32.DLL"
 
@@ -961,45 +957,519 @@ bool WIN_GL_DestroyContext(SDL_VideoDevice *_this, SDL_GLContext context)
     return true;
 }
 
-
-static void CreateD3D11Device(SDL_VideoDevice *_this)
+typedef struct D3D12Renderer
 {
-    _this->gl_data->hD3D11Mod = SDL_LoadObject("d3d11.dll");
-    if (!_this->gl_data->hD3D11Mod) {
-        return;
+    // Reference to the parent device
+    SDL_GPUDevice *sdlGPUDevice;
+
+#if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    IDXGIDebug *dxgiDebug;
+    IDXGIFactory4 *factory;
+#ifdef HAVE_IDXGIINFOQUEUE
+    IDXGIInfoQueue *dxgiInfoQueue;
+#endif
+    IDXGIAdapter1 *adapter;
+    SDL_SharedObject *dxgi_dll;
+    SDL_SharedObject *dxgidebug_dll;
+#endif
+    ID3D12Debug *d3d12Debug;
+    BOOL supportsTearing;
+    SDL_SharedObject *d3d12_dll;
+    ID3D12Device *device;
+    PFN_D3D12_SERIALIZE_ROOT_SIGNATURE pD3D12SerializeRootSignature;
+    char *semantic;
+    SDL_iconv_t iconv;
+
+    ID3D12CommandQueue *commandQueue;
+
+    bool debug_mode;
+    bool GPUUploadHeapSupported;
+    // FIXME: these might not be necessary since we're not using custom heaps
+    bool UMA;
+    bool UMACacheCoherent;
+    SDL_PropertiesID props;
+    Uint32 allowedFramesInFlight;
+
+    // Indirect command signatures
+    ID3D12CommandSignature *indirectDrawCommandSignature;
+    ID3D12CommandSignature *indirectIndexedDrawCommandSignature;
+    ID3D12CommandSignature *indirectDispatchCommandSignature;
+
+//    // Blit
+//    SDL_GPUShader *blitVertexShader;
+//    SDL_GPUShader *blitFrom2DShader;
+//    SDL_GPUShader *blitFrom2DArrayShader;
+//    SDL_GPUShader *blitFrom3DShader;
+//    SDL_GPUShader *blitFromCubeShader;
+//    SDL_GPUShader *blitFromCubeArrayShader;
+//
+//    SDL_GPUSampler *blitNearestSampler;
+//    SDL_GPUSampler *blitLinearSampler;
+//
+//    BlitPipelineCacheEntry *blitPipelines;
+//    Uint32 blitPipelineCount;
+//    Uint32 blitPipelineCapacity;
+//
+//    // Resources
+//
+//    D3D12CommandBuffer **availableCommandBuffers;
+//    Uint32 availableCommandBufferCount;
+//    Uint32 availableCommandBufferCapacity;
+//
+//    D3D12CommandBuffer **submittedCommandBuffers;
+//    Uint32 submittedCommandBufferCount;
+//    Uint32 submittedCommandBufferCapacity;
+//
+//    D3D12UniformBuffer **uniformBufferPool;
+//    Uint32 uniformBufferPoolCount;
+//    Uint32 uniformBufferPoolCapacity;
+//
+//    D3D12WindowData **claimedWindows;
+//    Uint32 claimedWindowCount;
+//    Uint32 claimedWindowCapacity;
+//
+//    D3D12Fence **availableFences;
+//    Uint32 availableFenceCount;
+//    Uint32 availableFenceCapacity;
+//
+//    D3D12StagingDescriptorPool *stagingDescriptorPools[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+//    D3D12GPUDescriptorHeapPool gpuDescriptorHeapPools[2];
+//
+//    // Deferred resource releasing
+//
+//    D3D12Buffer **buffersToDestroy;
+//    Uint32 buffersToDestroyCount;
+//    Uint32 buffersToDestroyCapacity;
+//
+//    D3D12Texture **texturesToDestroy;
+//    Uint32 texturesToDestroyCount;
+//    Uint32 texturesToDestroyCapacity;
+//
+//    D3D12Sampler **samplersToDestroy;
+//    Uint32 samplersToDestroyCount;
+//    Uint32 samplersToDestroyCapacity;
+//
+//    D3D12GraphicsPipeline **graphicsPipelinesToDestroy;
+//    Uint32 graphicsPipelinesToDestroyCount;
+//    Uint32 graphicsPipelinesToDestroyCapacity;
+//
+//    D3D12ComputePipeline **computePipelinesToDestroy;
+//    Uint32 computePipelinesToDestroyCount;
+//    Uint32 computePipelinesToDestroyCapacity;
+
+    // Locks
+    SDL_Mutex *acquireCommandBufferLock;
+    SDL_Mutex *acquireUniformBufferLock;
+    SDL_Mutex *submitLock;
+    SDL_Mutex *windowLock;
+    SDL_Mutex *fenceLock;
+    SDL_Mutex *disposeLock;
+} D3D12Renderer;
+
+
+static void D3D12_INTERNAL_DestroyRenderer(D3D12Renderer *renderer)
+{
+    // Release uniform buffers
+    for (Uint32 i = 0; i < renderer->uniformBufferPoolCount; i += 1) {
+        D3D12_INTERNAL_DestroyBuffer(
+            renderer->uniformBufferPool[i]->buffer);
+        SDL_free(renderer->uniformBufferPool[i]);
     }
 
-    _this->gl_data->pD3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)SDL_LoadFunction(_this->gl_data->hD3D11Mod, "D3D11CreateDevice");
-    if (!_this->gl_data->pD3D11CreateDevice) {
-        return;
+    // Clean up descriptor heaps
+    for (Uint32 i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i += 1) {
+        if (renderer->stagingDescriptorPools[i]) {
+            D3D12_INTERNAL_DestroyStagingDescriptorPool(renderer->stagingDescriptorPools[i]);
+            renderer->stagingDescriptorPools[i] = NULL;
+        }
     }
 
-    /* This flag adds support for surfaces with a different color channel ordering
-     * than the API default. It is required for compatibility with Direct2D.
-     */
-    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-
-    if (SDL_GetHintBoolean(SDL_HINT_RENDER_DIRECT3D11_DEBUG, false)) {
-        creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+    for (Uint32 i = 0; i < 2; i += 1) {
+        if (renderer->gpuDescriptorHeapPools[i].heaps) {
+            for (Uint32 j = 0; j < renderer->gpuDescriptorHeapPools[i].count; j += 1) {
+                if (renderer->gpuDescriptorHeapPools[i].heaps[j]) {
+                    D3D12_INTERNAL_DestroyDescriptorHeap(renderer->gpuDescriptorHeapPools[i].heaps[j]);
+                    renderer->gpuDescriptorHeapPools[i].heaps[j] = NULL;
+                }
+            }
+            SDL_free(renderer->gpuDescriptorHeapPools[i].heaps);
+        }
+        if (renderer->gpuDescriptorHeapPools[i].lock) {
+            SDL_DestroyMutex(renderer->gpuDescriptorHeapPools[i].lock);
+            renderer->gpuDescriptorHeapPools[i].lock = NULL;
+        }
     }
 
-    // Create a single-threaded device unless the app requests otherwise.
-    if (!SDL_GetHintBoolean(SDL_HINT_RENDER_DIRECT3D_THREADSAFE, false)) {
-        creationFlags |= D3D11_CREATE_DEVICE_SINGLETHREADED;
+    // Release command buffers
+    for (Uint32 i = 0; i < renderer->availableCommandBufferCount; i += 1) {
+        if (renderer->availableCommandBuffers[i]) {
+            D3D12_INTERNAL_DestroyCommandBuffer(renderer->availableCommandBuffers[i]);
+            renderer->availableCommandBuffers[i] = NULL;
+        }
     }
-    
-    D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_0 };
-    HRESULT hr = _this->gl_data->pD3D11CreateDevice(
-        NULL,
-        D3D_DRIVER_TYPE_HARDWARE,
-        NULL,
-        creationFlags,
-        levels,
-        SDL_arraysize(levels),
-        D3D11_SDK_VERSION,
-        &_this->gl_data->d3dDevice,
-        NULL,
-        &_this->gl_data->d3dContext);
+
+    // Release fences
+    for (Uint32 i = 0; i < renderer->availableFenceCount; i += 1) {
+        if (renderer->availableFences[i]) {
+            D3D12_INTERNAL_DestroyFence(renderer->availableFences[i]);
+            renderer->availableFences[i] = NULL;
+        }
+    }
+
+    // Clean up allocations
+    SDL_free(renderer->availableCommandBuffers);
+    SDL_free(renderer->submittedCommandBuffers);
+    SDL_free(renderer->uniformBufferPool);
+    SDL_free(renderer->claimedWindows);
+    SDL_free(renderer->availableFences);
+    SDL_free(renderer->buffersToDestroy);
+    SDL_free(renderer->texturesToDestroy);
+    SDL_free(renderer->samplersToDestroy);
+    SDL_free(renderer->graphicsPipelinesToDestroy);
+    SDL_free(renderer->computePipelinesToDestroy);
+
+    SDL_DestroyProperties(renderer->props);
+
+    // Tear down D3D12 objects
+    if (renderer->indirectDrawCommandSignature) {
+        ID3D12CommandSignature_Release(renderer->indirectDrawCommandSignature);
+        renderer->indirectDrawCommandSignature = NULL;
+    }
+    if (renderer->indirectIndexedDrawCommandSignature) {
+        ID3D12CommandSignature_Release(renderer->indirectIndexedDrawCommandSignature);
+        renderer->indirectIndexedDrawCommandSignature = NULL;
+    }
+    if (renderer->indirectDispatchCommandSignature) {
+        ID3D12CommandSignature_Release(renderer->indirectDispatchCommandSignature);
+        renderer->indirectDispatchCommandSignature = NULL;
+    }
+#if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    if (renderer->commandQueue) {
+        ID3D12CommandQueue_Release(renderer->commandQueue);
+        renderer->commandQueue = NULL;
+    }
+    if (renderer->device) {
+        ID3D12Device_Release(renderer->device);
+        renderer->device = NULL;
+    }
+    if (renderer->adapter) {
+        IDXGIAdapter1_Release(renderer->adapter);
+        renderer->adapter = NULL;
+    }
+    if (renderer->factory) {
+        IDXGIFactory4_Release(renderer->factory);
+        renderer->factory = NULL;
+    }
+    if (renderer->dxgiDebug) {
+        IDXGIDebug_ReportLiveObjects(
+            renderer->dxgiDebug,
+            D3D_IID_DXGI_DEBUG_ALL,
+            (DXGI_DEBUG_RLO_FLAGS)(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_DETAIL));
+        IDXGIDebug_Release(renderer->dxgiDebug);
+        renderer->dxgiDebug = NULL;
+    }
+#endif
+    if (renderer->d3d12_dll) {
+        SDL_UnloadObject(renderer->d3d12_dll);
+        renderer->d3d12_dll = NULL;
+    }
+#if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    if (renderer->dxgi_dll) {
+        SDL_UnloadObject(renderer->dxgi_dll);
+        renderer->dxgi_dll = NULL;
+    }
+    if (renderer->dxgidebug_dll) {
+        SDL_UnloadObject(renderer->dxgidebug_dll);
+        renderer->dxgidebug_dll = NULL;
+    }
+#endif
+    renderer->pD3D12SerializeRootSignature = NULL;
+
+    if (renderer->iconv) {
+        SDL_iconv_close(renderer->iconv);
+    }
+
+    SDL_DestroyMutex(renderer->acquireCommandBufferLock);
+    SDL_DestroyMutex(renderer->acquireUniformBufferLock);
+    SDL_DestroyMutex(renderer->submitLock);
+    SDL_DestroyMutex(renderer->windowLock);
+    SDL_DestroyMutex(renderer->fenceLock);
+    SDL_DestroyMutex(renderer->disposeLock);
+    SDL_free(renderer->semantic);
+    SDL_free(renderer);
+}
+
+
+static void CreateD3D12Device(SDL_VideoDevice *_this, bool preferLowPower, SDL_PropertiesID props)
+{
+    SDL_GPUDevice *result;
+    HRESULT res;
+
+#if (defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    PFN_D3D12_XBOX_CREATE_DEVICE D3D12XboxCreateDeviceFunc;
+    D3D12XBOX_CREATE_DEVICE_PARAMETERS createDeviceParams;
+#else
+    pfnCreateDXGIFactory1 pCreateDXGIFactory1;
+    IDXGIFactory1 *factory1;
+    IDXGIFactory5 *factory5;
+    IDXGIFactory6 *factory6;
+    DXGI_ADAPTER_DESC1 adapterDesc;
+    LARGE_INTEGER umdVersion;
+    PFN_D3D12_CREATE_DEVICE pD3D12CreateDevice;
+#endif
+    D3D12_FEATURE_DATA_ARCHITECTURE architecture;
+    D3D12_COMMAND_QUEUE_DESC queueDesc;
+
+    bool verboseLogs = SDL_GetBooleanProperty(
+        props,
+        SDL_PROP_GPU_DEVICE_CREATE_VERBOSE_BOOLEAN,
+        true);
+
+    D3D12Renderer *renderer = (D3D12Renderer *)SDL_calloc(1, sizeof(D3D12Renderer));
+
+    bool hasDxgiDebug = false;
+#if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    // Load the DXGI library
+    renderer->dxgi_dll = SDL_LoadObject(DXGI_DLL);
+    if (renderer->dxgi_dll == NULL) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        SET_STRING_ERROR_AND_RETURN("Could not find " DXGI_DLL, NULL);
+    }
+
+#ifdef HAVE_IDXGIINFOQUEUE
+    // Initialize the DXGI debug layer, if applicable
+    if (debugMode) {
+        hasDxgiDebug = D3D12_INTERNAL_TryInitializeDXGIDebug(renderer);
+    }
+#else
+    hasDxgiDebug = true;
+#endif
+
+    // Load the CreateDXGIFactory1 function
+    pCreateDXGIFactory1 = (pfnCreateDXGIFactory1)SDL_LoadFunction(
+        renderer->dxgi_dll,
+        CREATE_DXGI_FACTORY1_FUNC);
+    if (pCreateDXGIFactory1 == NULL) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        SET_STRING_ERROR_AND_RETURN("Could not load function: " CREATE_DXGI_FACTORY1_FUNC, NULL);
+    }
+
+    // Create the DXGI factory
+    res = pCreateDXGIFactory1(
+        &D3D_IID_IDXGIFactory1,
+        (void **)&factory1);
+    if (FAILED(res)) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D12_ERROR_AND_RETURN("Could not create DXGIFactory", NULL);
+    }
+
+    // Check for DXGI 1.4 support
+    res = IDXGIFactory1_QueryInterface(
+        factory1,
+        D3D_GUID(D3D_IID_IDXGIFactory4),
+        (void **)&renderer->factory);
+    if (FAILED(res)) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D12_ERROR_AND_RETURN("DXGI1.4 support not found, required for DX12", NULL);
+    }
+    IDXGIFactory1_Release(factory1);
+
+    // Check for explicit tearing support
+    res = IDXGIFactory4_QueryInterface(
+        renderer->factory,
+        D3D_GUID(D3D_IID_IDXGIFactory5),
+        (void **)&factory5);
+    if (SUCCEEDED(res)) {
+        res = IDXGIFactory5_CheckFeatureSupport(
+            factory5,
+            DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+            &renderer->supportsTearing,
+            sizeof(renderer->supportsTearing));
+        if (FAILED(res)) {
+            renderer->supportsTearing = false;
+        }
+        IDXGIFactory5_Release(factory5);
+    }
+
+    // Select the appropriate device for rendering
+    res = IDXGIFactory4_QueryInterface(
+        renderer->factory,
+        D3D_GUID(D3D_IID_IDXGIFactory6),
+        (void **)&factory6);
+    if (SUCCEEDED(res)) {
+        res = IDXGIFactory6_EnumAdapterByGpuPreference(
+            factory6,
+            0,
+            preferLowPower ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+            D3D_GUID(D3D_IID_IDXGIAdapter1),
+            (void **)&renderer->adapter);
+        IDXGIFactory6_Release(factory6);
+    } else {
+        res = IDXGIFactory4_EnumAdapters1(
+            renderer->factory,
+            0,
+            &renderer->adapter);
+    }
+
+    if (FAILED(res)) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D12_ERROR_AND_RETURN("Could not find adapter for D3D12Device", NULL);
+    }
+
+    // Get information about the selected adapter. Used for logging info.
+    res = IDXGIAdapter1_GetDesc1(renderer->adapter, &adapterDesc);
+    if (FAILED(res)) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D12_ERROR_AND_RETURN("Could not get adapter description", NULL);
+    }
+    res = IDXGIAdapter1_CheckInterfaceSupport(renderer->adapter, D3D_GUID(D3D_IID_IDXGIDevice), &umdVersion);
+    if (FAILED(res)) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D12_ERROR_AND_RETURN("Could not get adapter driver version", NULL);
+    }
+
+    renderer->props = SDL_CreateProperties();
+    if (verboseLogs) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_GPU, "SDL_GPU Driver: D3D12");
+    }
+
+    // Record device name
+    char *deviceName = SDL_iconv_wchar_utf8(&adapterDesc.Description[0]);
+    SDL_SetStringProperty(
+        renderer->props,
+        SDL_PROP_GPU_DEVICE_NAME_STRING,
+        deviceName);
+    if (verboseLogs) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_GPU, "D3D12 Adapter: %s", deviceName);
+    }
+    SDL_free(deviceName);
+
+    // Record driver version
+    char driverVer[64];
+    (void)SDL_snprintf(
+        driverVer,
+        SDL_arraysize(driverVer),
+        "%d.%d.%d.%d",
+        HIWORD(umdVersion.HighPart),
+        LOWORD(umdVersion.HighPart),
+        HIWORD(umdVersion.LowPart),
+        LOWORD(umdVersion.LowPart));
+    SDL_SetStringProperty(
+        renderer->props,
+        SDL_PROP_GPU_DEVICE_DRIVER_VERSION_STRING,
+        driverVer);
+    if (verboseLogs) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_GPU, "D3D12 Driver: %s", driverVer);
+    }
+#endif
+
+    // Load the D3D library
+    renderer->d3d12_dll = SDL_LoadObject(D3D12_DLL);
+    if (renderer->d3d12_dll == NULL) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        SET_STRING_ERROR_AND_RETURN("Could not find " D3D12_DLL, NULL);
+    }
+
+    // Load the CreateDevice function
+#if (defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    D3D12XboxCreateDeviceFunc = (PFN_D3D12_XBOX_CREATE_DEVICE)SDL_LoadFunction(
+        renderer->d3d12_dll,
+        "D3D12XboxCreateDevice");
+    if (D3D12XboxCreateDeviceFunc == NULL) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        SET_STRING_ERROR_AND_RETURN("Could not load function: D3D12XboxCreateDevice", NULL);
+    }
+#else
+    pD3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)SDL_LoadFunction(
+        renderer->d3d12_dll,
+        D3D12_CREATE_DEVICE_FUNC);
+    if (pD3D12CreateDevice == NULL) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        SET_STRING_ERROR_AND_RETURN("Could not load function: " D3D12_CREATE_DEVICE_FUNC, NULL);
+    }
+#endif
+
+    renderer->pD3D12SerializeRootSignature = (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)SDL_LoadFunction(
+        renderer->d3d12_dll,
+        D3D12_SERIALIZE_ROOT_SIGNATURE_FUNC);
+    if (renderer->pD3D12SerializeRootSignature == NULL) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        SET_STRING_ERROR_AND_RETURN("Could not load function: " D3D12_SERIALIZE_ROOT_SIGNATURE_FUNC, NULL);
+    }
+
+    // Initialize the D3D12 debug layer, if applicable
+    if (debugMode) {
+        bool hasD3d12Debug = D3D12_INTERNAL_TryInitializeD3D12Debug(renderer);
+#if (defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+        if (hasD3d12Debug) {
+            SDL_LogInfo(
+                SDL_LOG_CATEGORY_GPU,
+                "Validation layers enabled, expect debug level performance!");
+#else
+        if (hasDxgiDebug && hasD3d12Debug) {
+            SDL_LogInfo(
+                SDL_LOG_CATEGORY_GPU,
+                "Validation layers enabled, expect debug level performance!");
+        } else if (hasDxgiDebug || hasD3d12Debug) {
+            SDL_LogWarn(
+                SDL_LOG_CATEGORY_GPU,
+                "Validation layers partially enabled, some warnings may not be available");
+#endif
+        } else {
+            SDL_LogWarn(
+                SDL_LOG_CATEGORY_GPU,
+                "Validation layers not found, continuing without validation");
+        }
+    }
+
+    // Create the D3D12Device
+#if (defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    if (s_Device != NULL) {
+        renderer->device = s_Device;
+    } else {
+        SDL_zero(createDeviceParams);
+        createDeviceParams.Version = D3D12_SDK_VERSION;
+        createDeviceParams.GraphicsCommandQueueRingSizeBytes = D3D12XBOX_DEFAULT_SIZE_BYTES;
+        createDeviceParams.GraphicsScratchMemorySizeBytes = D3D12XBOX_DEFAULT_SIZE_BYTES;
+        createDeviceParams.ComputeScratchMemorySizeBytes = D3D12XBOX_DEFAULT_SIZE_BYTES;
+        createDeviceParams.DisableGeometryShaderAllocations = TRUE;
+        createDeviceParams.DisableTessellationShaderAllocations = TRUE;
+#if defined(SDL_PLATFORM_XBOXSERIES)
+        createDeviceParams.DisableDXR = TRUE;
+#endif
+        if (debugMode) {
+            createDeviceParams.ProcessDebugFlags = D3D12XBOX_PROCESS_DEBUG_FLAG_DEBUG;
+        }
+
+        res = D3D12XboxCreateDeviceFunc(
+            NULL,
+            &createDeviceParams,
+            IID_GRAPHICS_PPV_ARGS(&renderer->device));
+        if (FAILED(res)) {
+            D3D12_INTERNAL_DestroyRenderer(renderer);
+            CHECK_D3D12_ERROR_AND_RETURN("Could not create D3D12Device", NULL);
+        }
+
+        s_Device = renderer->device;
+    }
+#else
+    res = pD3D12CreateDevice(
+        (IUnknown *)renderer->adapter,
+        D3D_FEATURE_LEVEL_CHOICE,
+        D3D_GUID(D3D_IID_ID3D12Device),
+        (void **)&renderer->device);
+
+    if (FAILED(res)) {
+        D3D12_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D12_ERROR_AND_RETURN("Could not create D3D12Device", NULL);
+    }
+
+    // Initialize the D3D12 debug info queue, if applicable
+    if (debugMode) {
+        D3D12_INTERNAL_TryInitializeD3D12DebugInfoQueue(renderer);
+        D3D12_INTERNAL_TryInitializeD3D12DebugInfoLogger(renderer);
+    }
+#endif
 
 }
 
@@ -1016,7 +1486,7 @@ GLuint WIN_GL_GetBestFramebuffer(SDL_VideoDevice *_this, bool es_window)
     }
 
     if (!_this->gl_data->d3dDevice) {
-        CreateD3D11Device(_this);
+        //CreateD3D11Device(_this);
     }
 
 
