@@ -86,16 +86,6 @@ macro(add_sdl_example_executable TARGET)
     endif()
 
     if(APPLE)
-        # Set Apple App ID / Bundle ID.  This is needed to launch apps on some Apple
-        # platforms (iOS, for example).
-        set_target_properties(${TARGET} PROPERTIES
-          RESOURCES "${AST_DATAFILES}"
-          MACOSX_BUNDLE TRUE
-          MACOSX_BUNDLE_GUI_IDENTIFIER "org.libsdl.${TARGET}"
-          MACOSX_BUNDLE_BUNDLE_VERSION "${SDL3_VERSION}"
-          MACOSX_BUNDLE_SHORT_VERSION_STRING "${SDL3_VERSION}"
-        )
-        set_property(SOURCE ${AST_DATAFILES} PROPERTY MACOSX_PACKAGE_LOCATION "Resources")
     elseif(WINDOWS)
         # CET support was added in VS 16.7
         if(MSVC_VERSION GREATER 1926 AND CMAKE_GENERATOR_PLATFORM MATCHES "Win32|x64")

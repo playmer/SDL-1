@@ -595,17 +595,31 @@ int Cocoa_PumpEventsUntilDate(SDL_VideoDevice *_this, NSDate *expiration, bool a
         }
     }
 
+    static int i = 0;
+    static int j;
+    j = 0;
+    printf("Polling %d...\n", ++i);
+
     for (;;) {
-        NSEvent *event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:expiration inMode:NSDefaultRunLoopMode dequeue:YES];
+        printf("\tHandling %d...\n", j);
+        const NSTimeInterval interval = 1.0 / 60.0;
+        NSEvent *event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate dateWithTimeIntervalSinceNow:
+                                                                                interval] inMode:NSDefaultRunLoopMode dequeue:YES];
+
+        printf("\tDone retrieving %lu %d...\n", (unsigned long)[event type], j++);
         if (event == nil) {
             return 0;
         }
 
+
+
         if (!s_bShouldHandleEventsInSDLApplication) {
+            printf("\tDispatching %lu %d...\n", (unsigned long)[event type], j++);
             Cocoa_DispatchEvent(event);
         }
 
         // Pass events down to SDL3Application to be handled in sendEvent:
+        printf("\tSending %lu %d...\n", (unsigned long)[event type], j++);
         [NSApp sendEvent:event];
         if (!accumulate) {
             break;

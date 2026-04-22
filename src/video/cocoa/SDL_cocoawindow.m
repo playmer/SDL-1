@@ -1126,6 +1126,7 @@ static NSCursor *Cocoa_GetDesiredCursor(void)
 
 - (void)windowDidExpose:(NSNotification *)aNotification
 {
+    printf("ExposeEvent");
     Cocoa_SendExposedEventIfVisible(_data.window);
 }
 
@@ -1142,14 +1143,14 @@ static NSCursor *Cocoa_GetDesiredCursor(void)
 {
     // We'll try to maintain 60 FPS during live resizing
     const NSTimeInterval interval = 1.0 / 60.0;
-    liveResizeTimer = [NSTimer scheduledTimerWithTimeInterval:interval
+    liveResizeTimer = [NSTimer timerWithTimeInterval:interval
                                                       repeats:TRUE
                                                         block:^(NSTimer *unusedTimer)
     {
         SDL_OnWindowLiveResizeUpdate(_data.window);
     }];
 
-    [[NSRunLoop currentRunLoop] addTimer:liveResizeTimer forMode:NSRunLoopCommonModes];
+    [[NSRunLoop mainRunLoop] addTimer:liveResizeTimer forMode:NSRunLoopCommonModes];
 }
 
 - (void)windowDidEndLiveResize:(NSNotification *)aNotification
@@ -1192,7 +1193,7 @@ static NSCursor *Cocoa_GetDesiredCursor(void)
 - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
 {
     SDL_Window *window = _data.window;
-
+	
     if (window->min_aspect != window->max_aspect) {
         NSWindow *nswindow = _data.nswindow;
         NSRect newContentRect = [nswindow contentRectForFrameRect:NSMakeRect(0, 0, frameSize.width, frameSize.height)];
