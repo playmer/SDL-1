@@ -1110,6 +1110,11 @@ struct SDL_GPUDevice
         SDL_GPUTextureFormat format,
         SDL_GPUSampleCount desiredSampleCount);
 
+    // Device Queries
+
+    bool (*DeviceSupportsFeature)(
+        SDL_GPUDeviceFeatureSupport feature);
+
     // Opaque pointer for the Driver
     SDL_GPURenderer *driverData;
 
@@ -1220,6 +1225,8 @@ struct SDL_GPUDevice
 typedef struct SDL_GPUBootstrap
 {
     const char *name;
+    SDL_PropertiesID (*DeviceFeatureSupport)(const char* device_name);
+    char const * const * (*AvailableDevices)();
     bool (*PrepareDriver)(SDL_VideoDevice *_this, SDL_PropertiesID props);
     SDL_GPUDevice *(*CreateDevice)(bool debug_mode, bool prefer_low_power, SDL_PropertiesID props);
 } SDL_GPUBootstrap;

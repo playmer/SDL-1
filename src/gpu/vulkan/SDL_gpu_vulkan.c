@@ -13757,8 +13757,20 @@ static SDL_GPUDevice *VULKAN_CreateDevice(bool debugMode, bool preferLowPower, S
     return result;
 }
 
+SDL_PropertiesID VULKAN_DeviceFeatureSupport(const char* device_name)
+{
+
+}
+
+char const * const * VULKAN_AvailableDevices()
+{
+
+}
+
 SDL_GPUBootstrap VulkanDriver = {
     "vulkan",
+    VULKAN_AvailableDevices,
+    VULKAN_DeviceFeatureSupport,
     VULKAN_PrepareDriver,
     VULKAN_CreateDevice
 };

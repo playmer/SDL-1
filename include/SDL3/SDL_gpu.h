@@ -2364,6 +2364,7 @@ extern SDL_DECLSPEC SDL_GPUDevice * SDLCALL SDL_CreateGPUDeviceWithProperties(
 
 #define SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN                            "SDL.gpu.device.create.debugmode"
 #define SDL_PROP_GPU_DEVICE_CREATE_PREFERLOWPOWER_BOOLEAN                       "SDL.gpu.device.create.preferlowpower"
+#define SDL_PROP_GPU_DEVICE_CREATE_DEVICENAME_STRING.                           "SDL.gpu.device.create.devicename"
 #define SDL_PROP_GPU_DEVICE_CREATE_VERBOSE_BOOLEAN                              "SDL.gpu.device.create.verbose"
 #define SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING                                  "SDL.gpu.device.create.name"
 #define SDL_PROP_GPU_DEVICE_CREATE_FEATURE_CLIP_DISTANCE_BOOLEAN                "SDL.gpu.device.create.feature.clip_distance"
@@ -4585,6 +4586,14 @@ extern SDL_DECLSPEC SDL_PixelFormat SDLCALL SDL_GetPixelFormatFromGPUTextureForm
  * \since This function is available since SDL 3.4.0.
  */
 extern SDL_DECLSPEC SDL_GPUTextureFormat SDLCALL SDL_GetGPUTextureFormatFromPixelFormat(SDL_PixelFormat format);
+
+extern SDL_DECLSPEC bool SDLCALL SDL_GetGPUDeviceFeatureSupport(const char* device_name, SDL_GPUDeviceFeatureSupport feature);
+
+#define SDL_PROP_GPU_DEVICE_FEATURESUPPORT_MESHSHADERS_BOOLEAN                    "SDL.gpu.device.featuresupport.meshshaders"
+#define SDL_PROP_GPU_DEVICE_FEATURESUPPORT_BINDLESS_BOOLEAN                       "SDL.gpu.device.create.bindless"
+
+extern SDL_DECLSPEC char const * const * SDLCALL SDL_GetGPUDevices(const char* driver);
+
 
 #ifdef SDL_PLATFORM_GDK
 
