@@ -3458,6 +3458,25 @@ elseif(N3DS)
     "${SDL3_SOURCE_DIR}/src/io/n3ds/*.c"
     "${SDL3_SOURCE_DIR}/src/io/n3ds/*.h"
   )
+elseif(WIIU)
+  set(SDL_THREAD_WIIU 1)
+  sdl_glob_sources(
+    "${SDL3_SOURCE_DIR}/src/thread/wiiu/*.c"
+    "${SDL3_SOURCE_DIR}/src/thread/wiiu/*.h"
+  )
+  sdl_sources(
+    "${SDL3_SOURCE_DIR}/src/thread/generic/SDL_syscond.c"
+    "${SDL3_SOURCE_DIR}/src/thread/generic/SDL_syscond_c.h"
+    "${SDL3_SOURCE_DIR}/src/thread/generic/SDL_systls.c"
+    "${SDL3_SOURCE_DIR}/src/thread/generic/SDL_sysrwlock.c"
+    "${SDL3_SOURCE_DIR}/src/thread/generic/SDL_sysrwlock_c.h"
+  )
+  set(HAVE_SDL_THREADS TRUE)
+
+  
+  set(SDL_TIMER_WIIU 1)
+  sdl_glob_sources("${SDL3_SOURCE_DIR}/src/timer/wiiu/*.c")
+  set(HAVE_SDL_TIMERS TRUE)
 
 elseif(DOS)
   sdl_glob_sources("${SDL3_SOURCE_DIR}/src/main/dos/*.c")

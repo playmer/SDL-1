@@ -374,6 +374,7 @@
 #cmakedefine SDL_THREAD_PSP 1
 #cmakedefine SDL_THREAD_PS2 1
 #cmakedefine SDL_THREAD_N3DS 1
+#cmakedefine SDL_THREAD_WIIU 1
 #cmakedefine SDL_THREAD_DOS 1
 
 #cmakedefine SDL_THREAD_PRIVATE 1
@@ -384,6 +385,7 @@
 #cmakedefine SDL_TIME_VITA 1
 #cmakedefine SDL_TIME_PSP 1
 #cmakedefine SDL_TIME_N3DS 1
+#cmakedefine SDL_TIME_WIIU 1
 #cmakedefine SDL_TIME_NGAGE 1
 #cmakedefine SDL_TIME_DUMMY 1
 
@@ -397,6 +399,7 @@
 #cmakedefine SDL_TIMER_PSP 1
 #cmakedefine SDL_TIMER_PS2 1
 #cmakedefine SDL_TIMER_N3DS 1
+#cmakedefine SDL_TIMER_WIIU 1
 #cmakedefine SDL_TIMER_DOS 1
 
 #cmakedefine SDL_TIMER_PRIVATE 1
