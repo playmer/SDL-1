@@ -119,6 +119,8 @@ macro(add_sdl_example_executable TARGET)
             ROMFS "${ROMFS_DIR}"
             SMDH "${TARGET}.smdh"
         )
+    elseif(WIIU)
+        wut_create_rpx(${TARGET})
     elseif(NGAGE)
         string(MD5 TARGET_MD5 "${TARGET}")
         string(SUBSTRING "${TARGET_MD5}" 0 8 TARGET_MD5_8)

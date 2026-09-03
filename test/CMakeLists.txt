@@ -612,6 +612,12 @@ if(N3DS)
     endforeach()
 endif()
 
+if(WIIU)
+    foreach(APP ${SDL_TEST_EXECUTABLES})
+        wut_create_rpx(${APP})
+    endforeach()
+endif()
+
 if(RISCOS)
     set(SDL_TEST_EXECUTABLES_AIF)
     foreach(APP ${SDL_TEST_EXECUTABLES})
