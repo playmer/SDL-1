@@ -3459,6 +3459,21 @@ elseif(N3DS)
     "${SDL3_SOURCE_DIR}/src/io/n3ds/*.h"
   )
 elseif(WIIU)
+
+  if(SDL_AUDIO)
+    set(SDL_AUDIO_DRIVER_WIIU 1)
+    sdl_glob_sources(
+      "${SDL3_SOURCE_DIR}/src/audio/wiiu/*.c"
+      "${SDL3_SOURCE_DIR}/src/audio/wiiu/*.h"
+    )
+    set(HAVE_SDL_AUDIO TRUE)
+  endif()
+
+  sdl_glob_sources(
+    "${SDL3_SOURCE_DIR}/src/misc/wiiu/*.c"
+  )
+  set(HAVE_SDL_MISC TRUE)
+
   set(SDL_THREAD_WIIU 1)
   sdl_glob_sources(
     "${SDL3_SOURCE_DIR}/src/thread/wiiu/*.c"
