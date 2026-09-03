@@ -60,7 +60,7 @@ static bool WaitOnSemaphoreFor(SDL_Semaphore *sem, Sint64 timeoutNS)
 {
     Uint64 stop_time = SDL_GetTicksNS() + timeoutNS;
     while (SDL_GetTicksNS() < stop_time) {
-        if (OSTryWaitSemaphore(&sem->semaphore, 1) == 0) {
+        if (OSTryWaitSemaphore(&sem->semaphore) == 0) {
             return true;
         }
         // FIXME: this is what 3DS is using, I've not tested for a better value.

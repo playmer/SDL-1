@@ -40,6 +40,8 @@
 #include "n3ds/SDL_systhread_c.h"
 #elif defined(SDL_THREAD_DOS)
 #include "dos/SDL_systhread_c.h"
+#elif defined(SDL_THREAD_WIIU)
+#include "wiiu/SDL_systhread_c.h"
 #else
 #error Need thread implementation for this platform
 #include "generic/SDL_systhread_c.h"

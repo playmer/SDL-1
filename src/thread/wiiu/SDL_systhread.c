@@ -26,55 +26,49 @@
 
 #include "../SDL_systhread.h"
 
-// N3DS has very limited RAM (128MB), so we set a low default thread stack size.
-#define N3DS_THREAD_STACK_SIZE_DEFAULT (80 * 1024)
+// 1MB stack size default.
+#define WIIU_THREAD_STACK_SIZE_DEFAULT (1024 * 1024)
 
-#define N3DS_THREAD_PRIORITY_LOW           0x3F /**< Minimum priority */
-#define N3DS_THREAD_PRIORITY_MEDIUM        0x2F /**< Slightly higher than main thread (0x30) */
-#define N3DS_THREAD_PRIORITY_HIGH          0x19 /**< High priority for non-video work */
-#define N3DS_THREAD_PRIORITY_TIME_CRITICAL 0x18 /**< Highest priority */
+enum WiiUThreadPriority {
+    WIIU_THREAD_PRIORITY_LOW = 31,           /**< Minimum priority */
+    WIIU_THREAD_PRIORITY_MAIN_THREAD = 30,   /**< Main thread */
+    WIIU_THREAD_PRIORITY_MEDIUM = 29,        /**< Slightly higher than main thread (30) */
+    WIIU_THREAD_PRIORITY_HIGH = 5,           /**< High priority for non-video work */
+    WIIU_THREAD_PRIORITY_TIME_CRITICAL = 0,  /**< Highest priority */
+};
 
 static size_t GetStackSize(size_t requested_size);
 
-static void ThreadEntry(void *arg)
+static int ThreadEntry(int argc, const char **argv)
 {
-    SDL_RunThread((SDL_Thread *)arg);
-    threadExit(0);
+    SDL_RunThread((SDL_Thread *)argv);
+    return 0;
 }
 
 bool SDL_SYS_CreateThread(SDL_Thread *thread,
                           SDL_FunctionPointer pfnBeginThread,
                           SDL_FunctionPointer pfnEndThread)
 {
-    s32 priority = 0x30;
-    int cpu = -1;
-    size_t stack_size = GetStackSize(thread->stacksize);
+    int32_t priority = WIIU_THREAD_PRIORITY_MAIN_THREAD;
+    uint32_t stack_size = GetStackSize(thread->stacksize);
 
-    svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
+    void* stack_space = SDL_malloc(stack_size);
 
-    // on New 3DS, prefer putting audio thread on system core
-    if (thread->name && (SDL_strncmp(thread->name, "SDLAudioP", 9) == 0)) {
-        bool new3ds = false;
-        APT_CheckNew3DS(&new3ds);
-        if (new3ds && R_SUCCEEDED(APT_SetAppCpuTimeLimit(30))) {
-            cpu = 1;
-        }
-    }
-
-    thread->handle = threadCreate(ThreadEntry,
-                                  thread,
+    BOOL result = OSCreateThread(&thread->handle,
+                                  ThreadEntry,
+                                  0,
+                                  (char*)thread,
+                                  stack_space,
                                   stack_size,
                                   priority,
-                                  cpu,
-                                  false);
+                                  OS_THREAD_ATTRIB_AFFINITY_ANY
+                                );
 
-    if (!thread->handle) {
+    if (!result) {
         return SDL_SetError("Couldn't create thread");
     }
 
-    u32 thread_ID = 0;
-    svcGetThreadId(&thread_ID, threadGetHandle(thread->handle));
-    thread->threadid = (SDL_ThreadID) thread_ID;
+    thread->threadid = (SDL_ThreadID) thread->handle.id;
 
     return true;
 }
@@ -82,7 +76,7 @@ bool SDL_SYS_CreateThread(SDL_Thread *thread,
 static size_t GetStackSize(size_t requested_size)
 {
     if (requested_size == 0) {
-        return N3DS_THREAD_STACK_SIZE_DEFAULT;
+        return WIIU_THREAD_STACK_SIZE_DEFAULT;
     }
 
     return requested_size;
@@ -95,20 +89,13 @@ void SDL_SYS_SetupThread(const char *name)
 
 SDL_ThreadID SDL_GetCurrentThreadID(void)
 {
-    u32 thread_ID = 0;
-    svcGetThreadId(&thread_ID, CUR_THREAD_HANDLE);
-    return (SDL_ThreadID)thread_ID;
+    OSThread *thread = OSGetCurrentThread();
+    return (SDL_ThreadID)thread->id;
 }
-enum WiiUThreadPriority {
-    WIIU_THREAD_PRIORITY_LOW = 31,
-    WIIU_THREAD_PRIORITY_MEDIUM = 15,
-    WIIU_THREAD_PRIORITY_HIGH = 5,
-    WIIU_THREAD_PRIORITY_TIME_CRITICAL = 0,
-};
 
 bool SDL_SYS_SetThreadPriority(SDL_ThreadPriority sdl_priority)
 {
-    s32 svc_priority;
+    int32_t svc_priority;
     switch (sdl_priority) {
     case SDL_THREAD_PRIORITY_LOW:
         svc_priority = WIIU_THREAD_PRIORITY_LOW;
@@ -125,7 +112,7 @@ bool SDL_SYS_SetThreadPriority(SDL_ThreadPriority sdl_priority)
     default:
         svc_priority = WIIU_THREAD_PRIORITY_MEDIUM;
     }
-    if (OSSetThreadPriority(CUR_THREAD_HANDLE, svc_priority) < 0) {
+    if (OSSetThreadPriority(OSGetCurrentThread(), svc_priority) < 0) {
         return SDL_SetError("OSSetThreadPriority failed");
     }
     return true;
@@ -134,20 +121,20 @@ bool SDL_SYS_SetThreadPriority(SDL_ThreadPriority sdl_priority)
 void SDL_SYS_WaitThread(SDL_Thread *thread)
 {
     int returnCode = 0;
-    BOOL res = OSJoinThread(thread->handle, &returnCode);
+    BOOL res = OSJoinThread(&thread->handle, &returnCode);
 
     /*
       Detached threads can be waited on, but should NOT be cleaned manually
       as it would result in a fatal error.
     */
-    if (res && SDL_GetThreadState(thread) != SDL_THREAD_DETACHED) {
-        threadFree(thread->handle);
-    }
+    //if (res && SDL_GetThreadState(thread) != SDL_THREAD_DETACHED) {
+    //    threadFree(thread->handle);
+    //}
 }
 
 void SDL_SYS_DetachThread(SDL_Thread *thread)
 {
-    threadDetach(thread->handle);
+    OSDetachThread(&thread->handle);
 }
 
 #endif // SDL_THREAD_WIIU
